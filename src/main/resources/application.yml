@@ -1,0 +1,18 @@
+spring:
+  application:
+    name: order-management-app
+
+  jackson:
+    property-naming-strategy: SNAKE_CASE
+
+  datasource:
+    url: jdbc:mysql://localhost:52000/spring_jdbc?allowPublicKeyRetrieval=true&useSSL=false
+    username: root
+    password: hillel
+    driver-class-name: com.mysql.cj.jdbc.Driver
+
+  jpa:
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.MySQLDialect
+        show-sql: true
