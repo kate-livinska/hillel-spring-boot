@@ -1,9 +1,14 @@
 package hillel.service;
 
 import TestData.TestData;
+import hillel.domain.dto.OrderDTO;
+import hillel.domain.dto.ProductDTO;
+import hillel.domain.mapper.OrderMapper;
+import hillel.domain.mapper.ProductMapper;
 import hillel.domain.model.Order;
 import hillel.domain.model.Product;
 import hillel.repo.OrderRepository;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 
@@ -17,6 +22,7 @@ import org.springframework.test.context.junit.jupiter.SpringExtension;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.NoSuchElementException;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -27,6 +33,10 @@ import static org.mockito.Mockito.*;
 class OrderServiceImplTest {
     @Autowired
     private OrderService orderService;
+    @Autowired
+    private OrderMapper orderMapper;
+    @Autowired
+    private ProductMapper productMapper;
 
     @MockitoBean
     private OrderRepository repository;
@@ -38,11 +48,18 @@ class OrderServiceImplTest {
     void findByIdTest_OK() {
         Long testId = 1L;
 
-        when(repository.findById(1L)).thenReturn(Optional.of(TestData.ORDER1));
+        when(repository.findById(testId)).thenReturn(Optional.of(TestData.ORDER1));
+        OrderDTO result = orderService.findById(testId);
 
-        Optional<Order> result = orderService.findById(testId);
-        assertTrue(result.isPresent());
-        assertEquals(TestData.ORDER1, result.get());
+        assertNotNull(result);
+        assertEquals(TestData.ORDER1.getId(), result.getId());
+    }
+
+    @Test
+    void findByIdTest_NotFoundThrowsException() {
+        Long testId = 1L;
+        when(repository.findById(testId)).thenReturn(Optional.empty());
+        assertThrows(NoSuchElementException.class, () -> orderService.findById(testId));
     }
 
     @Test
@@ -52,19 +69,20 @@ class OrderServiceImplTest {
         testList.add(TestData.ORDER2);
 
         when(repository.findAll()).thenReturn(testList);
-        List<Order> result = orderService.findAll();
+        List<OrderDTO> result = orderService.findAll();
 
         assertFalse(result.isEmpty());
         assertEquals(testList.size(), result.size());
     }
 
     @Test
-    void saveOrderTest_TotalIsCountedAndDateSet() {
+    void saveOrderTest_totalIsCountedAndDateSet() {
         Order testOrder = new Order();
         List<Product> products = TestData.generateProductList();
         testOrder.setProducts(products);
 
-        orderService.saveOrder(testOrder);
+        OrderDTO testDTO = orderMapper.toOrderDTO(testOrder);
+        orderService.saveOrder(testDTO);
         verify(repository).save(orderCaptor.capture());
 
         Order result = orderCaptor.getValue();
@@ -72,34 +90,31 @@ class OrderServiceImplTest {
         assertNotNull(result);
         assertNotNull(result.getCreatedAt());
         assertEquals(1000.10, result.getTotalCost());
-        assertEquals(products, result.getProducts());
+        assertEquals(products.size(), result.getProducts().size());
     }
 
     @Test
     void saveOrderTest_orderSetForProducts() {
-        Product testProduct = new Product();
-        testProduct.setName("testProduct");
-        testProduct.setPrice(100.0);
-        List<Product> products = TestData.generateProductList();
-        products.add(testProduct);
+        ProductDTO productDTO1 = ProductDTO.builder().id(1L).name("Test").price(100.0).build();
+        ProductDTO productDTO2 = ProductDTO.builder().id(2L).name("Test2").price(200.0).build();
+        List<ProductDTO> productDTOS = new ArrayList<>();
+        productDTOS.add(productDTO1);
+        productDTOS.add(productDTO2);
+        OrderDTO testOrderDTO = OrderDTO.builder().id(3L).products(productDTOS).build();
 
-        Order testOrder = Order.builder()
-                .id(3L)
-                .createdAt(LocalDateTime.now())
-                .products(products).build();
-
-        orderService.saveOrder(testOrder);
+        orderService.saveOrder(testOrderDTO);
 
         verify(repository).save(orderCaptor.capture());
 
         Order result = orderCaptor.getValue();
         List<Product> resultProducts = result.getProducts();
         Product resultProduct = resultProducts.get(0);
-        Product resultProduct2 = resultProducts.get(resultProducts.size() - 1);
+        Product resultProduct2 = resultProducts.get(1);
 
         assertNotNull(result);
-        assertEquals(products.size(), result.getProducts().size());
-        assertEquals("testProduct", resultProduct2.getName());
+        assertEquals(2, result.getProducts().size());
+        assertEquals(3L, result.getId());
+        assertNotNull(resultProduct.getOrder());
         assertNotNull(resultProduct2.getOrder());
         assertEquals(3L, resultProduct2.getOrder().getId());
         assertEquals(3L, resultProduct.getOrder().getId());
@@ -111,11 +126,12 @@ class OrderServiceImplTest {
         Order testOrder = new Order();
         testOrder.setId(testId);
         testOrder.setCreatedAt(LocalDateTime.of(2025, 3, 4, 15, 30, 45, 0));
+        OrderDTO testDTO = orderMapper.toOrderDTO(testOrder);
 
-        when(repository.findById(1L)).thenReturn(Optional.of(TestData.ORDER1));
+        when(repository.findById(testId)).thenReturn(Optional.of(TestData.ORDER1));
         when(repository.save(orderCaptor.capture())).thenReturn(TestData.ORDER1);
 
-        orderService.updateOrder(testOrder);
+        orderService.updateOrder(testDTO);
         Order result = orderCaptor.getValue();
 
         assertNotNull(result);
@@ -128,11 +144,12 @@ class OrderServiceImplTest {
         Long testId = 1L;
         Order testOrder = new Order();
         testOrder.setId(testId);
+        OrderDTO testDTO = orderMapper.toOrderDTO(testOrder);
 
-        when(repository.findById(1L)).thenReturn(Optional.of(TestData.ORDER1));
+        when(repository.findById(testId)).thenReturn(Optional.of(TestData.ORDER1));
         when(repository.save(orderCaptor.capture())).thenReturn(TestData.ORDER1);
 
-        orderService.updateOrder(testOrder);
+        orderService.updateOrder(testDTO);
 
         Order result = orderCaptor.getValue();
 
@@ -141,21 +158,29 @@ class OrderServiceImplTest {
     }
 
     @Test
-    void updateOrderTest_idNotFoundReturnsEmptyOptional() {
+    void updateOrderTest_idNotFoundThrowsException() {
         Long testId = 1000L;
         Order testOrder = new Order();
         testOrder.setId(testId);
+        OrderDTO testDTO = orderMapper.toOrderDTO(testOrder);
 
         when(repository.findById(anyLong())).thenReturn(Optional.empty());
 
-        Optional<Order> result = orderService.updateOrder(testOrder);
-
-        assertFalse(result.isPresent());
+        assertThrows(NoSuchElementException.class, () -> orderService.updateOrder(testDTO));
     }
 
     @Test
-    void deleteByIdTest_repoDeleteByIdIsCalled() {
-        orderService.deleteById(1L);
-        verify(repository).deleteById(1L);
+    void deleteByIdTest_OK() {
+        Long testId = 1L;
+        when(repository.findById(testId)).thenReturn(Optional.of(TestData.ORDER1));
+        orderService.deleteById(testId);
+        verify(repository).delete(TestData.ORDER1);
+    }
+
+    @Test
+    void deleteByIdTest_NotFoundThrowsException() {
+        Long testId = 100L;
+        when(repository.findById(testId)).thenReturn(Optional.empty());
+        assertThrows(NoSuchElementException.class, () -> orderService.deleteById(testId));
     }
 }

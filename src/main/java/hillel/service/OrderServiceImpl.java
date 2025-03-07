@@ -1,38 +1,52 @@
 package hillel.service;
 
+import hillel.domain.dto.OrderDTO;
+import hillel.domain.mapper.OrderMapper;
 import hillel.domain.model.Order;
 import hillel.domain.model.Product;
 import hillel.repo.OrderRepository;
 import jakarta.transaction.Transactional;
-import lombok.AllArgsConstructor;
+import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Scope;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.NoSuchElementException;
 import java.util.Optional;
 
+@RequiredArgsConstructor
 @Service
 @Scope("prototype")
 @Transactional
-@AllArgsConstructor
 public class OrderServiceImpl implements OrderService {
     private final OrderRepository orderRepository;
+    private final OrderMapper orderMapper;
+    private static final String ERROR = "Order with id: %d not found";
 
     @Override
-    public Optional<Order> findById(Long id) {
-        return orderRepository.findById(id);
+    public OrderDTO findById(Long id) {
+        try {
+            Optional<Order> byId = orderRepository.findById(id);
+            Order order = byId.orElseThrow(NoSuchElementException::new);
+            return orderMapper.toOrderDTO(order);
+        } catch (NoSuchElementException e) {
+            throw new NoSuchElementException(String.format(ERROR, id));
+        }
     }
 
     @Override
-    public List<Order> findAll() {
-        return orderRepository.findAll();
+    public List<OrderDTO> findAll() {
+        List<Order> all = orderRepository.findAll();
+        return orderMapper.toOrderDTOList(all);
     }
 
     @Transactional
     @Override
-    public Order saveOrder(Order order) {
+    public OrderDTO saveOrder(OrderDTO orderDTO) {
+        Order order = orderMapper.toOrder(orderDTO);
         List<Product> products = order.getProducts();
         if (products != null) {
             for (Product product : products) {
@@ -45,17 +59,21 @@ public class OrderServiceImpl implements OrderService {
             order.setCreatedAt(LocalDateTime.now());
         }
 
-        return orderRepository.save(order);
+        Order save = orderRepository.save(order);
+        return orderMapper.toOrderDTO(save);
     }
 
     @Transactional
     @Override
-    public Optional<Order> updateOrder(Order order) {
+    public OrderDTO updateOrder(OrderDTO order) {
         Long id = order.getId();
-        Optional<Order> byId = findById(id);
-        if (byId.isPresent()) {
-            Order orderToUpdate = byId.get();
-            List<Product> products = (order.getProducts() != null) ? order.getProducts() : new ArrayList<>();;
+        Order orderWithUpdates = orderMapper.toOrder(order);
+        try {
+            Optional<Order> byId = orderRepository.findById(id);
+
+            Order orderToUpdate = byId.orElseThrow(NoSuchElementException::new);
+            List<Product> products =
+                    (orderWithUpdates.getProducts() != null) ? orderWithUpdates.getProducts() : new ArrayList<>();
             if (!products.isEmpty()) {
                 for (Product product : products) {
                     product.setOrder(orderToUpdate);
@@ -63,15 +81,22 @@ public class OrderServiceImpl implements OrderService {
                 orderToUpdate.setProducts(products);
                 orderToUpdate.setTotalCost(calculateTotalCost(products));
             }
-
-            return Optional.of(orderRepository.save(orderToUpdate));
+            Order saved = orderRepository.save(orderToUpdate);
+            return orderMapper.toOrderDTO(saved);
+        } catch (NoSuchElementException e) {
+            throw new NoSuchElementException(String.format(ERROR, id));
         }
-        return Optional.empty();
     }
 
     @Override
     public void deleteById(Long id) {
-        orderRepository.deleteById(id);
+        try {
+            Optional<Order> byId = orderRepository.findById(id);
+            Order order = byId.orElseThrow(NoSuchElementException::new);
+            orderRepository.delete(order);
+        } catch (NoSuchElementException e) {
+            throw new NoSuchElementException(String.format(ERROR, id));
+        }
     }
 
     private double calculateTotalCost(List<Product> products) {

@@ -23,7 +23,7 @@ public class Order {
     private double totalCost;
 
     @Column(name = "created_at")
-    @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "dd-MM-yyyy HH:mm:ss")
+    //@JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "dd-MM-yyyy HH:mm:ss")
     private LocalDateTime createdAt;
 
     @OneToMany(cascade = CascadeType.ALL, fetch = FetchType.EAGER)
