@@ -6,9 +6,9 @@ spring:
     property-naming-strategy: SNAKE_CASE
 
   datasource:
-    url: jdbc:mysql://localhost:52000/spring_jdbc?allowPublicKeyRetrieval=true&useSSL=false
-    username: root
-    password: hillel
+    url: jdbc:mysql://${DB_HOST}/${DB_NAME:spring_jdbc}?allowPublicKeyRetrieval=true&useSSL=false
+    username: ${DB_USER}
+    password: ${DB_PASSWORD}
     driver-class-name: com.mysql.cj.jdbc.Driver
 
   jpa:

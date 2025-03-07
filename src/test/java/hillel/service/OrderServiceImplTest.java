@@ -1,19 +1,21 @@
 package hillel.service;
 
 import TestData.TestData;
+import hillel.config.ServiceTestConfig;
 import hillel.domain.dto.OrderDTO;
 import hillel.domain.dto.ProductDTO;
 import hillel.domain.mapper.OrderMapper;
 import hillel.domain.model.Order;
 import hillel.domain.model.Product;
 import hillel.repo.OrderRepository;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 
 import org.mockito.ArgumentCaptor;
 import org.mockito.Captor;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
 
@@ -26,11 +28,12 @@ import java.util.Optional;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
-@SpringBootTest
+@ContextConfiguration(classes = ServiceTestConfig.class)
 @ExtendWith(SpringExtension.class)
 class OrderServiceImplTest {
-    @Autowired
+
     private OrderService orderService;
+
     @Autowired
     private OrderMapper orderMapper;
 
@@ -39,6 +42,11 @@ class OrderServiceImplTest {
 
     @Captor
     private ArgumentCaptor<Order> orderCaptor;
+
+    @BeforeEach
+    void setUp() {
+        orderService = new OrderServiceImpl(repository, orderMapper);
+    }
 
     @Test
     void findByIdTest_OK() {
