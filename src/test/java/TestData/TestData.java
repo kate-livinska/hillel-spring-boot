@@ -1,5 +1,6 @@
 package TestData;
 
+import hillel.domain.dto.OrderDTO;
 import hillel.domain.model.Order;
 import hillel.domain.model.Product;
 
@@ -13,6 +14,8 @@ public class TestData {
     public static final Product PRODUCT1 = new Product(1L, "Laptop", 800.00, ORDER1);
     public static final Product PRODUCT2 = new Product(2L, "Mouse", 50.10, ORDER1);
     public static final Product PRODUCT3 = new Product(3L, "Keyboard", 150.00, ORDER1);
+
+    public static final OrderDTO ORDER_DTO = new OrderDTO(1L, 1000.10, LocalDateTime.now(), new ArrayList<>());
 
     public static List<Product> generateProductList() {
         List<Product> list = new ArrayList<>();

@@ -7,7 +7,6 @@ import hillel.domain.model.Product;
 import hillel.repo.OrderRepository;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Scope;
 import org.springframework.stereotype.Service;
 
@@ -32,7 +31,7 @@ public class OrderServiceImpl implements OrderService {
             Optional<Order> byId = orderRepository.findById(id);
             Order order = byId.orElseThrow(NoSuchElementException::new);
             return orderMapper.toOrderDTO(order);
-        } catch (NoSuchElementException e) {
+        } catch (Exception e) {
             throw new NoSuchElementException(String.format(ERROR, id));
         }
     }
@@ -83,7 +82,7 @@ public class OrderServiceImpl implements OrderService {
             }
             Order saved = orderRepository.save(orderToUpdate);
             return orderMapper.toOrderDTO(saved);
-        } catch (NoSuchElementException e) {
+        } catch (Exception e) {
             throw new NoSuchElementException(String.format(ERROR, id));
         }
     }
@@ -94,7 +93,7 @@ public class OrderServiceImpl implements OrderService {
             Optional<Order> byId = orderRepository.findById(id);
             Order order = byId.orElseThrow(NoSuchElementException::new);
             orderRepository.delete(order);
-        } catch (NoSuchElementException e) {
+        } catch (Exception e) {
             throw new NoSuchElementException(String.format(ERROR, id));
         }
     }

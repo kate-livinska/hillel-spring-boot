@@ -2,8 +2,8 @@ package hillel.controller;
 
 import hillel.domain.dto.OrderDTO;
 import hillel.service.OrderService;
-import lombok.AllArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -22,7 +22,12 @@ public class OrderController {
 
     @GetMapping(path = "/{id}", produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<OrderDTO> findById(@PathVariable("id") Long id) {
-        return ResponseEntity.ok(orderService.findById(id));
+        try {
+            return ResponseEntity.ok(orderService.findById(id));
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
+        }
+
     }
 
     @GetMapping
@@ -33,22 +38,30 @@ public class OrderController {
     @PostMapping(consumes = MediaType.APPLICATION_JSON_VALUE,
             produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<OrderDTO> createOrder(@RequestBody OrderDTO orderDTO) {
-        return ResponseEntity.ok(orderService.saveOrder(orderDTO));
+        OrderDTO saved = orderService.saveOrder(orderDTO);
+        return ResponseEntity.status(HttpStatus.CREATED).body(saved);
     }
 
     @PutMapping(consumes = MediaType.APPLICATION_JSON_VALUE,
             produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<OrderDTO> updateOrder(@RequestBody OrderDTO orderDTO) {
-        if (orderDTO.getId() == null) {
-            return ResponseEntity.badRequest().build();
-        } else {
+        try {
+            if (orderDTO.getId() == null) {
+                return ResponseEntity.badRequest().build();
+            }
             return ResponseEntity.ok(orderService.updateOrder(orderDTO));
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
         }
     }
 
     @DeleteMapping("/{id}")
     public ResponseEntity<String> deleteOrder(@PathVariable("id") Long id) {
-        orderService.deleteById(id);
-        return ResponseEntity.ok().build();
+        try {
+            orderService.deleteById(id);
+            return ResponseEntity.status(HttpStatus.NO_CONTENT).build();
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage());
+        }
     }
 }

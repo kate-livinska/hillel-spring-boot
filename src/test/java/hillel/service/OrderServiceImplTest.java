@@ -4,11 +4,9 @@ import TestData.TestData;
 import hillel.domain.dto.OrderDTO;
 import hillel.domain.dto.ProductDTO;
 import hillel.domain.mapper.OrderMapper;
-import hillel.domain.mapper.ProductMapper;
 import hillel.domain.model.Order;
 import hillel.domain.model.Product;
 import hillel.repo.OrderRepository;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 
@@ -35,8 +33,6 @@ class OrderServiceImplTest {
     private OrderService orderService;
     @Autowired
     private OrderMapper orderMapper;
-    @Autowired
-    private ProductMapper productMapper;
 
     @MockitoBean
     private OrderRepository repository;
